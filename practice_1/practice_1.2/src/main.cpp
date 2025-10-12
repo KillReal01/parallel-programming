@@ -16,19 +16,47 @@
 #endif
 
 
-void playNote(int frequency, int duration_ms, int times)
+void playNote(int frequency, int duration_ms)
 {
 #ifdef OS_LINUX
     std::string cmd = "play -n synth " + std::to_string(duration_ms / 1000.0) +
                       " sine " + std::to_string(frequency) + " >/dev/null 2>&1";
-    for (int i = 0; i < times; ++i)
-        std::system(cmd.c_str());
+    std::system(cmd.c_str());
 #elif defined(OS_WINDOWS)
-    for (int i = 0; i < times; ++i)
-        Beep(frequency, duration_ms);
+    Beep(frequency, duration_ms);
 #endif
 }
 
+
+void playGamma()
+{
+    std::vector<int> notes = {261, 293, 329, 349, 392, 440, 493, 523};
+    int duration = 400; 
+
+    std::cout << "Play gamma...\n";
+    for (int freq : notes)
+    {
+        playNote(freq, duration);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    std::cout << "Gamma finished.\n";
+}
+
+void playAccord()
+{
+    std::vector<int> chord = {261, 329, 392};
+    int duration = 1000;
+
+     std::cout << "Play accord DO-Major...\n";
+    std::vector<std::thread> threads;
+    for (int freq : chord)
+        threads.emplace_back(playNote, freq, duration);
+
+    for (auto& th : threads)
+        th.join();
+
+    std::cout << "Accord finished.\n";
+}
 
 int main()
 {
@@ -48,6 +76,11 @@ int main()
 
     std::this_thread::sleep_for(std::chrono::seconds(6));
     std::cout << "Finish program\n";
+
+    playGamma();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
+    playAccord();
 
     return 0;
 }
