@@ -47,7 +47,7 @@ void playAccord()
     std::vector<int> chord = {261, 329, 392};
     int duration = 1000;
 
-     std::cout << "Play accord DO-Major...\n";
+    std::cout << "Play accord DO-Major...\n";
     std::vector<std::thread> threads;
     for (int freq : chord)
         threads.emplace_back(playNote, freq, duration);
@@ -61,21 +61,21 @@ void playAccord()
 int main()
 {
     std::cout << "Start program\n";
-    std::vector<std::thread> threads;
+    // std::vector<std::thread> threads;
 
-    threads.emplace_back(playNote, 261, 500, 3); // ДО
-    threads.emplace_back(playNote, 293, 500, 4); // РЕ
-    threads.emplace_back(playNote, 329, 500, 5); // МИ
-    threads.emplace_back(playNote, 349, 500, 6); // ФА
-    threads.emplace_back(playNote, 392, 500, 7); // СОЛЬ
-    threads.emplace_back(playNote, 440, 500, 8); // ЛЯ
-    threads.emplace_back(playNote, 493, 500, 9); // СИ
+    // threads.emplace_back(playNote, 261, 500); // ДО
+    // threads.emplace_back(playNote, 293, 500); // РЕ
+    // threads.emplace_back(playNote, 329, 500); // МИ
+    // threads.emplace_back(playNote, 349, 500); // ФА
+    // threads.emplace_back(playNote, 392, 500); // СОЛЬ
+    // threads.emplace_back(playNote, 440, 500); // ЛЯ
+    // threads.emplace_back(playNote, 493, 500); // СИ
 
-    for (auto& th : threads)
-        th.detach();
+    // for (auto& th : threads)
+    //     th.detach();
 
-    std::this_thread::sleep_for(std::chrono::seconds(6));
-    std::cout << "Finish program\n";
+    // std::this_thread::sleep_for(std::chrono::seconds(6));
+    // std::cout << "Finish program\n";
 
     playGamma();
     std::this_thread::sleep_for(std::chrono::seconds(2));
