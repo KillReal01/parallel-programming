@@ -2,6 +2,8 @@
 #include <thread>
 #include <vector>
 #include <chrono>
+#include <iostream>
+
 
 #if defined(_WIN32) || defined(_WIN64)
     #define OS_WINDOWS
@@ -30,6 +32,7 @@ void playNote(int frequency, int duration_ms, int times)
 
 int main()
 {
+    std::cout << "Start program\n";
     std::vector<std::thread> threads;
 
     threads.emplace_back(playNote, 261, 500, 3); // ДО
@@ -41,9 +44,10 @@ int main()
     threads.emplace_back(playNote, 493, 500, 9); // СИ
 
     for (auto& th : threads)
-        th.detach(); // потоки работают независимо
+        th.detach();
 
-    std::this_thread::sleep_for(std::chrono::seconds(6)); // ждём окончания всех сигналов
+    std::this_thread::sleep_for(std::chrono::seconds(6));
+    std::cout << "Finish program\n";
 
     return 0;
 }
