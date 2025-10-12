@@ -1,3 +1,0 @@
-C:/Users/kiril/OneDrive/Рабочий стол/Работа/parallel-programming/Practice_1/CMakeFiles/practice-1.1.dir
-C:/Users/kiril/OneDrive/Рабочий стол/Работа/parallel-programming/Practice_1/CMakeFiles/ALL_BUILD.dir
-C:/Users/kiril/OneDrive/Рабочий стол/Работа/parallel-programming/Practice_1/CMakeFiles/ZERO_CHECK.dir
