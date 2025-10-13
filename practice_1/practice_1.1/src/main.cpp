@@ -10,9 +10,10 @@
 #include <iomanip>
 #include <sstream>
 
+#include <cxxopts.hpp>
 
 namespace fs = std::filesystem;
-
+int MAX_THREADS;
 
 std::vector<fs::path> getInputFilenames(const fs::path& path)
 {
@@ -165,16 +166,54 @@ void task_3()
     std::cout << "Duration (steady): " << formatDuration(duration) << std::endl;
 }
 
-int main()
+int parseArgs(int argc, char** argv)
 {
-    std::cout << "Task 1.a\n";
-    task_1();
+    try
+    {
+        cxxopts::Options options(argv[0], "File processing application");
 
-    std::cout << "Task 1.b\n";
-    task_2();
+        options.add_options()
+            ("maxThreads", "Maximum number of threads", cxxopts::value<int>()->default_value("1"))
+            ("h,help", "Show help message");
 
-    std::cout << "Task 1.c\n";
-    task_3();
+        auto result = options.parse(argc, argv);
+
+        if (result.count("help"))
+        {
+            std::cout << options.help() << std::endl;
+            return 0;
+        }
+
+        MAX_THREADS = result["maxThreads"].as<int>();
+        if (MAX_THREADS < 1)
+        {
+            std::cerr << "Error: maxThreads must be >= 1\n";
+            return 1;
+        }
+
+        std::cout << "Max threads: " << MAX_THREADS << std::endl;
+    } 
+    catch (const cxxopts::OptionException& e)
+    {
+        std::cerr << "Error parsing options: " << e.what() << std::endl;
+        return 1;
+    }
+
+    return 0;
+}
+
+int main(int argc, char** argv)
+{
+    parseArgs(argc, argv);
+    
+    // std::cout << "Task 1.a\n";
+    // task_1();
+
+    // std::cout << "Task 1.b\n";
+    // task_2();
+
+    // std::cout << "Task 1.c\n";
+    // task_3();
 
     return 0;
 }

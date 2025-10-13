@@ -9,6 +9,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 add_executable(${PROJECT_NAME} src/main.cpp)
 
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
