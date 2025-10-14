@@ -13,7 +13,10 @@
 #include <cxxopts.hpp>
 
 namespace fs = std::filesystem;
-int MAX_THREADS;
+
+fs::path inputDir = "input_text";
+fs::path outputDir = "output_text";
+
 
 std::vector<fs::path> getInputFilenames(const fs::path& path)
 {
@@ -75,11 +78,9 @@ std::string formatDuration(std::chrono::nanoseconds time)
     return ss.str();
 }
 
-void task_1()
+// 1.a
+void processSequential() 
 {
-    fs::path inputDir = "input_text";
-    fs::path outputDir = "output_text";
-
     if (!fs::exists(outputDir))
         fs::create_directory(outputDir);
 
@@ -100,11 +101,9 @@ void task_1()
     std::cout << "Duration (steady): " << formatDuration(duration) << std::endl;
 }
 
-void task_2()
+// 1.b
+void processAllParallel()
 {
-    fs::path inputDir = "input_text";
-    fs::path outputDir = "output_text";
-
     if (!fs::exists(outputDir))
         fs::create_directory(outputDir);
 
@@ -130,17 +129,14 @@ void task_2()
     std::cout << "Duration (steady): " << formatDuration(duration) << std::endl;
 }
 
-void task_3()
+// 1.c
+void processParallel(int32_t maxThreads)
 {
-    fs::path inputDir = "input_text";
-    fs::path outputDir = "output_text";
-
     if (!fs::exists(outputDir))
         fs::create_directory(outputDir);
 
     auto files = getInputFilenames(inputDir);
 
-    uint32_t maxThreads = std::max(1u, std::thread::hardware_concurrency());
     std::vector<std::thread> threads;
     threads.reserve(maxThreads);
 
@@ -150,7 +146,7 @@ void task_3()
     while (idx < files.size())
     {
         threads.clear();
-        for (size_t t = 0; t < maxThreads && idx < files.size(); ++t, ++idx)
+        for (int32_t t = 0; t < maxThreads && idx < files.size(); ++t, ++idx)
         {
             fs::path outFile = outputDir / ("_" + files[idx].filename().string());
             threads.emplace_back(&processFile, files[idx], outFile);
@@ -166,12 +162,14 @@ void task_3()
     std::cout << "Duration (steady): " << formatDuration(duration) << std::endl;
 }
 
-int parseArgs(int argc, char** argv)
+
+int main(int argc, char** argv)
 {
+    int32_t maxThreads = 1;
+
     try
     {
         cxxopts::Options options(argv[0], "File processing application");
-
         options.add_options()
             ("maxThreads", "Maximum number of threads", cxxopts::value<int>()->default_value("1"))
             ("h,help", "Show help message");
@@ -184,36 +182,34 @@ int parseArgs(int argc, char** argv)
             return 0;
         }
 
-        MAX_THREADS = result["maxThreads"].as<int>();
-        if (MAX_THREADS < 1)
+        maxThreads = result["maxThreads"].as<int>();
+        if (maxThreads < 1)
         {
             std::cerr << "Error: maxThreads must be >= 1\n";
             return 1;
         }
-
-        std::cout << "Max threads: " << MAX_THREADS << std::endl;
-    } 
+    }
     catch (const cxxopts::OptionException& e)
     {
         std::cerr << "Error parsing options: " << e.what() << std::endl;
         return 1;
     }
 
-    return 0;
-}
+    std::cout << "1. processParallel: maxThreads = " << maxThreads << std::endl;
+    processParallel(maxThreads);
 
-int main(int argc, char** argv)
-{
-    parseArgs(argc, argv);
-    
-    // std::cout << "Task 1.a\n";
-    // task_1();
+    // 1.a
+    std::cout << "\n1.a processSequential\n";
+    processSequential();
 
-    // std::cout << "Task 1.b\n";
-    // task_2();
+    // 1.b
+    std::cout << "\n1.b processAllParallel\n";
+    processAllParallel();
 
-    // std::cout << "Task 1.c\n";
-    // task_3();
+    // 1.c
+    int32_t optimalNumThreads = std::max(1u, std::thread::hardware_concurrency());
+    std::cout << "\n1.c processParallel: maxThreads = " << optimalNumThreads << std::endl;
+    processParallel(optimalNumThreads);
 
     return 0;
 }
