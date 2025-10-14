@@ -1,0 +1,1 @@
+./build/practice-1.4 --maxThreads 6
