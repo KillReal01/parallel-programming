@@ -9,7 +9,7 @@ int main()
 
     for (char ch = 'a'; ch <= 'z'; ++ch)
     {
-        std::cout << ch;
+        std::cout << ch << std::flush;
         delay += delta;
         std::this_thread::sleep_for(std::chrono::milliseconds(delay)); 
     }
