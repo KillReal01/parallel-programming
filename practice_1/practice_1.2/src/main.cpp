@@ -32,13 +32,25 @@ void playAllNotes()
 {
     std::vector<std::thread> threads;
 
-    threads.emplace_back(&playNote, 261, 200, 6); // ДО
-    threads.emplace_back(&playNote, 293, 600, 2); // РЕ
-    threads.emplace_back(&playNote, 329, 300, 3); // МИ
-    threads.emplace_back(&playNote, 349, 500, 3); // ФА
-    threads.emplace_back(&playNote, 392, 150, 5); // СОЛЬ
-    threads.emplace_back(&playNote, 440, 800, 1); // ЛЯ
-    threads.emplace_back(&playNote, 493, 400, 4); // СИ
+    threads.emplace_back(&playNote, 261, 500, 10); // ДО
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    threads.emplace_back(&playNote, 293, 600, 10); // РЕ
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    threads.emplace_back(&playNote, 329, 500, 8); // МИ
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    threads.emplace_back(&playNote, 349, 500, 6); // ФА
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    threads.emplace_back(&playNote, 392, 500, 7); // СОЛЬ
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    threads.emplace_back(&playNote, 440, 800, 5); // ЛЯ
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    threads.emplace_back(&playNote, 493, 400, 8); // СИ
 
     for (auto& th : threads)
         th.detach();
@@ -77,13 +89,14 @@ int main()
     // 1
     std::cout << "Playing all notes...\n";
     playAllNotes();
-    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::this_thread::sleep_for(std::chrono::seconds(7));
     std::cout << "Notes finished\n";
 
     // 1.a
     std::cout << "Playing gamma...\n";
     playGamma();
     std::cout << "Gamma finished.\n";
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // 1.b
     std::cout << "Playing accord DO-MAJOR...\n";
