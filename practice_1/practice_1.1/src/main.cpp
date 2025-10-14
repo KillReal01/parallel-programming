@@ -55,7 +55,7 @@ bool processFile(const fs::path& inputFile, const fs::path& outputFile)
     return true;
 }
 
-std::string formatDuration(std::chrono::nanoseconds time)
+std::string formatDuration(const std::chrono::nanoseconds& time)
 {
     using namespace std::chrono;
 

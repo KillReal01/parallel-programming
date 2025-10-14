@@ -14,5 +14,7 @@ int main()
         std::this_thread::sleep_for(std::chrono::milliseconds(delay)); 
     }
     std::cout << std::endl;
+
+    getchar();
     return 0;
 }
