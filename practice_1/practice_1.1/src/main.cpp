@@ -211,5 +211,6 @@ int main(int argc, char** argv)
     std::cout << "\n1.c processParallel: maxThreads = " << optimalNumThreads << std::endl;
     processParallel(optimalNumThreads);
 
+    std::cin.get();
     return 0;
 }

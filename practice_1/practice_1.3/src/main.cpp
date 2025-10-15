@@ -15,6 +15,6 @@ int main()
     }
     std::cout << std::endl;
 
-    getchar();
+    std::cin.get();
     return 0;
 }

@@ -37,7 +37,7 @@ int main()
     std::vector<std::jthread> threads;
     threads.reserve(strings.size());
 
-    std::stop_source ss;
+    // std::stop_source ss;
 
     for (size_t i = 0; i < strings.size(); i++)
     {

@@ -132,6 +132,6 @@ int main(int argc, char** argv)
     auto end = std::chrono::steady_clock::now();
     std::cout << "Handle duration (steady): " << formatDuration(end - start) << std::endl;
 
-    getchar();
+    std::cin.get();
     return 0;
 }
