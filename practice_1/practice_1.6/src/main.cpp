@@ -67,16 +67,22 @@ int main()
     vector[vector_size - 1] = key;
 
     uint32_t maxThreads = std::max(1u, std::thread::hardware_concurrency());
-    const size_t partSize = vector.size() / maxThreads;
+    size_t partSize = vector_size / maxThreads;
+    size_t remainder = vector_size % maxThreads;
+    uint32_t totalThreads = maxThreads + (remainder ? 1 : 0);
 
     std::stop_source ss;
     std::vector<std::thread> threads;
-    threads.reserve(maxThreads);
+    threads.reserve(totalThreads);
 
     auto first = vector.begin();
-    for (uint32_t i = 0; i < maxThreads; ++i)
+    for (uint32_t i = 0; i < totalThreads; ++i)
     {
-        auto last = (i + 1 == maxThreads) ? vector.end() : std::next(first, std::min(partSize, static_cast<size_t>(vector.end() - first)));
+        size_t currentSize = (i < maxThreads) ? partSize : remainder;
+        if (currentSize == 0)
+            break;
+
+        auto last = std::next(first, currentSize);
         threads.emplace_back(findBlock<std::vector<int>::iterator, int>, ss, first, last, key);
         first = last;
         // std::this_thread::sleep_for(std::chrono::milliseconds(10));
