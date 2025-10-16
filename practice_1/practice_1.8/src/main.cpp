@@ -2,6 +2,8 @@
 #include <thread>
 #include <chrono>
 #include <mutex>
+#include <ctime>
+
 
 std::mutex mtx;
 
@@ -31,23 +33,23 @@ std::string formatDuration(const std::chrono::nanoseconds& time)
 void reduce(std::stop_source ss, int& limit, int timeout_ms, int value)
 {
     auto st = ss.get_token();
-    auto id = std::this_thread::get_id();
     int local_sum = 0;
 
-    std::stop_callback sc {st, [id, timeout_ms, local_sum, value](){
-        std::cout << "Id: " << id << "; sum: " << local_sum << "; timeout: " << timeout_ms << "; value: " << value << "\n";
+    std::stop_callback sc {st, [&local_sum, timeout_ms, value](){
+        std::cout << "Id: " << std::this_thread::get_id() << ";\tsum: " << local_sum << ";\tvalue: " << value << ";\ttimeout: " << timeout_ms << "\n";
     }};
 
     while(!st.stop_requested())
-    {   
+    {
         {
             std::lock_guard<std::mutex> lock(mtx); 
-            local_sum += value;
-
             if (limit - value < 0)
                 ss.request_stop();
             else
+            {
                 limit -= value;
+                local_sum += value;
+            }
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(timeout_ms));
     }
@@ -55,20 +57,20 @@ void reduce(std::stop_source ss, int& limit, int timeout_ms, int value)
 
 int main()
 {
+    std::srand(std::time(0));
     int limit = 10'000;
   
     uint32_t maxThreads = std::max(1u, std::thread::hardware_concurrency());
     std::vector<std::jthread> threads;
     threads.reserve(maxThreads);
 
-    std::stop_source ss;
-
     std::cout << "Start reducing, maxThreads: " << maxThreads << std::endl;
     auto start = std::chrono::steady_clock::now();
     for (auto i = 0; i < maxThreads; i++)
     {
-        auto delay = 10 * (rand() % 10 + 1);
+        auto delay = rand() % 20 + 1;
         auto value = rand() % 10 + 1;
+        std::stop_source ss;
         threads.emplace_back(&reduce, ss, std::ref(limit), delay, value);
     }
     
