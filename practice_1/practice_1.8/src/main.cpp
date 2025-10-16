@@ -70,8 +70,7 @@ int main()
     {
         auto delay = rand() % 20 + 1;
         auto value = rand() % 10 + 1;
-        std::stop_source ss;
-        threads.emplace_back(&reduce, ss, std::ref(limit), delay, value);
+        threads.emplace_back(&reduce, std::stop_source{}, std::ref(limit), delay, value);
     }
     
     for (auto& th : threads)
