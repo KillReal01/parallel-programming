@@ -38,8 +38,8 @@ void fillVector(std::stop_source ss, std::vector<int>& vector, int& sum, int lim
     while(!st.stop_requested())
     {   
         std::lock_guard<std::mutex> lock(mtx);
-        sum += value;
         vector.push_back(value);
+        sum += value;
 
         if (sum > limit)
             ss.request_stop();    
