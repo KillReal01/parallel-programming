@@ -1,3 +1,9 @@
+/*
+    Course: Parallel Programming
+    Assignment: 1.2
+    Completed by: Bereza Kirill
+*/
+
 #include <string>
 #include <thread>
 #include <vector>

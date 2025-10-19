@@ -1,3 +1,9 @@
+/*
+    Course: Parallel Programming
+    Assignment: 1.4
+    Completed by: Bereza Kirill
+*/
+
 #include <iostream>
 #include <thread>
 #include <chrono>
