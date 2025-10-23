@@ -58,7 +58,7 @@ template<typename Container>
 void sequantial(const Container& c)
 {
     auto start = std::chrono::steady_clock::now();
-    int64_t sum = std::accumulate(c.begin(), c.end(), 0);
+    auto sum = std::accumulate(c.begin(), c.end(), 0);
     auto finish = std::chrono::steady_clock::now();
 
     float avg = static_cast<float>(sum) / c.size();
@@ -71,7 +71,7 @@ void sequantial(const Container& c)
 template<typename Container, typename T = typename Container::value_type>
 void parallel(const Container& c)
 {
-    const uint32_t threadNum = std::max(1u, std::thread::hardware_concurrency());
+    const auto threadNum = std::max(1u, std::thread::hardware_concurrency());
     std::cout << "[parallel] Number threads: " << threadNum << '\n';
 
     const size_t part_size = c.size() / threadNum;
@@ -82,7 +82,7 @@ void parallel(const Container& c)
     auto start = std::chrono::steady_clock::now();
 
     auto begin = c.begin();
-    for (uint32_t i = 0; i < threadNum; ++i)
+    for (auto i = 0; i < threadNum; ++i)
     {
         auto end = (i == threadNum - 1) ? c.end() : std::next(begin, part_size);
 
