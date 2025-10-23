@@ -123,5 +123,7 @@ int main()
     // Параллельная обработка
     parallel(vi);
 
+    std::cin.get();
+
     return 0;
 }
