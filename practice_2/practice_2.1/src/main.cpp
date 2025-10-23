@@ -34,10 +34,12 @@ public:
 
     threadsafe_stack& operator=(const threadsafe_stack& other)
     {
-        std::scoped_lock lock(_mtx, other._mtx);
-        if (this != &other)
         {
-            _data = other._data;
+            std::scoped_lock lock(_mtx, other._mtx);
+            if (this != &other)
+            {
+                _data = other._data;
+            }
         }
         return *this;
     }
@@ -50,10 +52,12 @@ public:
 
     threadsafe_stack& operator=(threadsafe_stack&& other) noexcept
     {
-        std::scoped_lock lock(_mtx, other._mtx);
-        if (this != &other)
         {
-            _data = std::move(other._data);
+            std::scoped_lock lock(_mtx, other._mtx);
+            if (this != &other)
+            {
+                _data = std::move(other._data);
+            }
         }
         return *this;
     }
@@ -83,7 +87,7 @@ public:
     {
         std::lock_guard<std::shared_mutex> lock(_mtx);
         if (_data.empty())
-            throw std::runtime_error("stack is empty");
+            return nullptr;
         auto res = std::make_shared<T>(_data.back());
         _data.pop_back();
         return res;

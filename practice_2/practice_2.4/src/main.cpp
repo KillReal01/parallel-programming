@@ -5,9 +5,11 @@
 */
 
 
+#include <string>
 #include <iostream>
 #include <thread>
-#include <syncstream>
+#include <vector>
+// #include <syncstream>
 
 
 void printString(int threadNumber)
@@ -15,8 +17,9 @@ void printString(int threadNumber)
     thread_local std::string s("hello from ");
     s += std::to_string(threadNumber);
 
-    std::osyncstream stream(std::cout);
-    stream << "Address: " << &s << " string: " << s << std::endl;
+    // std::osyncstream stream(std::cout);
+    // stream << "Address: " << &s << " string: " << s << std::endl;
+    std::cout << "Address: " << &s << " string: " << s << std::endl;
 }
 
 int main()

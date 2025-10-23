@@ -43,17 +43,16 @@ int main()
     std::vector<std::jthread> threads;
     threads.reserve(strings.size());
 
-    // std::stop_source ss;
+    std::stop_source ss;
 
     for (size_t i = 0; i < strings.size(); i++)
     {
-        // threads.emplace_back(&printString, ss.get_token(), std::cref(strings[i]));
-        threads.emplace_back(&printString, std::cref(strings[i]));
+        threads.emplace_back(&printString, ss.get_token(), std::cref(strings[i]));
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     
     std::cin.get();
-    // ss.request_stop();
+    ss.request_stop();
 
     {
         std::lock_guard<std::mutex> lock(mtx);
