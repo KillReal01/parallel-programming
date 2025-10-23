@@ -1,8 +1,7 @@
 .vscode/
-/build/
+build/
 .vs/
-/.vs/
-/*vcxproj.filters/
-/*vcxproj.user/
-/x64/
-/x32/
+*.vcxproj.user
+*.vcxproj.filters
+x64/
+x32/
