@@ -2,3 +2,7 @@
 /build/
 .vs/
 /.vs/
+/*vcxproj.filters/
+/*vcxproj.user/
+/x64/
+/x32/
