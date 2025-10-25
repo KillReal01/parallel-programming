@@ -1,20 +1,38 @@
-﻿// practice_3.2.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
-//
+﻿#include <iostream>
+#include <thread>
+#include <future>
+#include <string>
+#include <stdexcept>
 
-#include <iostream>
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    auto res = std::async(std::launch::async, []() {
+        std::string str;
+        while (true)
+        {
+            std::cout << "Enter value: ";
+            std::cin >> str;
+            size_t index;
+            int value = std::stoi(str, &index);
+            if (index != str.size())
+                throw std::invalid_argument("not an integer");
+        }
+     });
+
+    try
+    {
+        res.get();
+    }
+    catch (const std::invalid_argument& ex)
+    {
+        std::cout << "invalid_argument: " << ex.what() << std::endl;
+    }
+    catch (const std::out_of_range& ex)
+    {
+        std::cout << "out_of_range: " << ex.what() << std::endl;
+    }
+
+    return 0;
 }
 
-// Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
-// Отладка программы: F5 или меню "Отладка" > "Запустить отладку"
-
-// Советы по началу работы 
-//   1. В окне обозревателя решений можно добавлять файлы и управлять ими.
-//   2. В окне Team Explorer можно подключиться к системе управления версиями.
-//   3. В окне "Выходные данные" можно просматривать выходные данные сборки и другие сообщения.
-//   4. В окне "Список ошибок" можно просматривать ошибки.
-//   5. Последовательно выберите пункты меню "Проект" > "Добавить новый элемент", чтобы создать файлы кода, или "Проект" > "Добавить существующий элемент", чтобы добавить в проект существующие файлы кода.
-//   6. Чтобы снова открыть этот проект позже, выберите пункты меню "Файл" > "Открыть" > "Проект" и выберите SLN-файл.
