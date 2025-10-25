@@ -1,20 +1,63 @@
-﻿// practice_3.3.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
-//
+﻿#include <iostream>
+#include <condition_variable>
+#include <thread>
+#include <chrono>
+#include <mutex>
+#include <stop_token>
 
-#include <iostream>
+
+std::mutex mtx;
+std::condition_variable cv;
+bool ping_turn = true;
+
+
+void ping(std::stop_token st)
+{
+    while (!st.stop_requested())
+    {
+        {
+            std::unique_lock lock(mtx);
+            cv.wait(lock, [] { return ping_turn; });
+            std::cout << "ping\n";
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        {
+            std::lock_guard lock(mtx);
+            ping_turn = false;
+        }
+        cv.notify_one();
+    }
+}
+
+void pong(std::stop_token st)
+{
+    while (!st.stop_requested())
+    {
+        {
+            std::unique_lock lock(mtx);
+            cv.wait(lock, [] { return !ping_turn; });
+            std::cout << "pong\n";
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        {
+            std::lock_guard lock(mtx);
+            ping_turn = true;
+        }
+        cv.notify_one();
+    }
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    std::cout << "Starting ping-pong...\n";
+    std::stop_source ss;
+
+    std::jthread t1(ping, ss.get_token());
+    std::jthread t2(pong, ss.get_token());
+
+    std::cin.get();
+    ss.request_stop();
+    std::cout << "Finished ping-pong\n";
+
+    return 0;
 }
-
-// Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
-// Отладка программы: F5 или меню "Отладка" > "Запустить отладку"
-
-// Советы по началу работы 
-//   1. В окне обозревателя решений можно добавлять файлы и управлять ими.
-//   2. В окне Team Explorer можно подключиться к системе управления версиями.
-//   3. В окне "Выходные данные" можно просматривать выходные данные сборки и другие сообщения.
-//   4. В окне "Список ошибок" можно просматривать ошибки.
-//   5. Последовательно выберите пункты меню "Проект" > "Добавить новый элемент", чтобы создать файлы кода, или "Проект" > "Добавить существующий элемент", чтобы добавить в проект существующие файлы кода.
-//   6. Чтобы снова открыть этот проект позже, выберите пункты меню "Файл" > "Открыть" > "Проект" и выберите SLN-файл.
