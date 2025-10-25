@@ -1,20 +1,77 @@
-﻿// practice_3.4.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
-//
+﻿#include <iostream>
+#include <thread>
+#include <future>
+#include <random>
+#include <cstddef>
+#include <vector>
+#include <numeric>
+#include <algorithm>
 
-#include <iostream>
+
+void createVector(std::promise<std::vector<int>> p, size_t size)
+{
+    std::vector<int> vector;
+	vector.reserve(size);
+
+    std::random_device rd;         
+    std::mt19937 gen(rd());       
+    std::uniform_int_distribution<int> dist(0, 100);
+
+    std::cout << "Start generate...\n";
+    for (std::size_t i = 0; i < size; ++i)
+        vector.push_back(dist(gen));
+
+    std::cout << "Vector generated\n";
+    p.set_value(vector);
+}
+
+int sumValues(std::shared_future<std::vector<int>> future)
+{
+    auto vector = future.get();
+    int sum = std::accumulate(vector.begin(), vector.end(), 0);
+    return sum;
+}
+
+int minValue(std::shared_future<std::vector<int>> future)
+{
+    auto vector = future.get();
+    int min = *std::min_element(vector.begin(), vector.end());
+    return min;
+}
+
+int maxValue(std::shared_future<std::vector<int>> future)
+{
+    auto vector = future.get();
+    int max = *std::max_element(vector.begin(), vector.end());
+    return max;
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    std::promise<std::vector<int>> pr;
+    auto shared_future = pr.get_future().share();
+
+    size_t vector_size = 100'000'000;
+
+    std::thread t(&createVector, std::move(pr), vector_size);
+
+    std::future<int> f_sum = std::async(std::launch::async, [shared_future]() {
+        return sumValues(shared_future);
+        });
+
+    std::future<int> f_min = std::async(std::launch::async, [shared_future]() {
+        return minValue(shared_future);
+        });
+
+    std::future<int> f_max = std::async(std::launch::async, [shared_future]() {
+        return maxValue(shared_future);
+        });
+
+    t.join();
+    std::cout << "Sum: " << f_sum.get() << std::endl;
+    std::cout << "Min: " << f_min.get() << std::endl;
+    std::cout << "Max: " << f_max.get() << std::endl;
+
+	return 0;
 }
 
-// Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
-// Отладка программы: F5 или меню "Отладка" > "Запустить отладку"
-
-// Советы по началу работы 
-//   1. В окне обозревателя решений можно добавлять файлы и управлять ими.
-//   2. В окне Team Explorer можно подключиться к системе управления версиями.
-//   3. В окне "Выходные данные" можно просматривать выходные данные сборки и другие сообщения.
-//   4. В окне "Список ошибок" можно просматривать ошибки.
-//   5. Последовательно выберите пункты меню "Проект" > "Добавить новый элемент", чтобы создать файлы кода, или "Проект" > "Добавить существующий элемент", чтобы добавить в проект существующие файлы кода.
-//   6. Чтобы снова открыть этот проект позже, выберите пункты меню "Файл" > "Открыть" > "Проект" и выберите SLN-файл.
