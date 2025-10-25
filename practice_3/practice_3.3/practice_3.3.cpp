@@ -1,4 +1,11 @@
-﻿#include <iostream>
+﻿/*
+    Course: Parallel Programming
+    Assignment: 3.3
+    Completed by: Bereza Kirill
+*/
+
+
+#include <iostream>
 #include <condition_variable>
 #include <thread>
 #include <chrono>

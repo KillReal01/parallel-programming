@@ -1,4 +1,10 @@
-﻿#include <iostream>
+﻿/*
+    Course: Parallel Programming
+    Assignment: 3.2
+    Completed by: Bereza Kirill
+*/
+
+#include <iostream>
 #include <thread>
 #include <future>
 #include <string>

@@ -1,4 +1,10 @@
-﻿#include <random>
+﻿/*
+    Course: Parallel Programming
+    Assignment: 3.1
+    Completed by: Bereza Kirill
+*/
+
+#include <random>
 #include <iterator>
 #include <type_traits>
 #include <vector>
