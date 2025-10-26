@@ -5,10 +5,13 @@
 */
 
 #include <iostream>
+#include <vector>
+#include <thread>
 #include <mutex>
 #include <condition_variable>
-#include <queue>
-#include <thread>
+#include <optional>
+#include <atomic>
+#include <chrono>
 #include <cctype>
 
 
@@ -16,103 +19,143 @@ class Queue
 {
 public:
     explicit Queue(size_t size = 10)
-        : _buffer(size), _size(size), _head_index(0), _tail_index(0), timeout(10)
+        : _buffer(size), _size(size), _head(0), _tail(0), _current_size(0), _stop(false)
     { }
 
     ~Queue()
     {
-        _cv_produce.notify_all();
-        _cv_consume.notify_all();
+        stop();
     }
 
     Queue(const Queue&) = delete;
     Queue& operator=(const Queue&) = delete;
 
-    void push(char c)
+    Queue(Queue&& other) noexcept
+        : _buffer(std::move(other._buffer)),
+        _size(other._size),
+        _head(other._head),
+        _tail(other._tail),
+        _current_size(other._current_size),
+        _stop(other._stop.load())
     {
-        {
-            std::unique_lock lock(_mtx);
-            auto status = _cv_produce.wait_for(lock, timeout, [this]() {
-                size_t fact_size = (_tail_index >= _head_index)
-                    ? _tail_index - _head_index
-                    : _size - _head_index + _tail_index;
-                return fact_size < _size;
-            });
-
-            if (status)
-            {
-                _buffer[_tail_index] = c;
-                _tail_index = (_tail_index + 1) % _size;
-            }
-            else
-                return;
-        }
-        _cv_consume.notify_one();
+        other._head = other._tail = other._current_size = 0;
+        other._stop = true;
     }
 
-    char* pop()
+    Queue& operator=(Queue&& other) noexcept
     {
-        char ch;
+        if (this != &other)
+        {
+            std::scoped_lock lock(_mtx, other._mtx);
+
+            _buffer = std::move(other._buffer);
+            _head = other._head;
+            _tail = other._tail;
+            _current_size = other._current_size;
+            _stop = other._stop.load();
+
+            other._head = other._tail = other._current_size = 0;
+            other._stop = true;
+        }
+        return *this;
+    }
+
+    void stop()
+    {
+        {
+            std::lock_guard lock(_mtx);
+            _stop = true;
+        }
+        _cv_produce.notify_all();
+        _cv_consume.notify_all();
+    }
+
+    bool push(char c)
+    {
         {
             std::unique_lock lock(_mtx);
-            auto status = _cv_consume.wait_for(lock, timeout, [this]() { return _head_index != _tail_index; });
-            if (status)
-            {
-                ch = _buffer[_head_index];
-                _head_index = (_head_index + 1) % _size;
-            }
-            else
-                return nullptr;
+            bool status = _cv_produce.wait_for(lock, timeout, [this] {return _current_size < _size || _stop; });
+
+            if (_stop || !status)
+                return false;
+
+            _buffer[_tail] = c;
+            _tail = (_tail + 1) % _size;
+            ++_current_size;
+        }
+        _cv_consume.notify_one();
+        return true;
+    }
+
+    std::optional<char> pop()
+    {
+        char c;
+        {
+            std::unique_lock lock(_mtx);
+            bool status = _cv_consume.wait_for(lock, timeout, [this] { return _current_size > 0 || _stop; });
+
+            if (_stop || !status)
+                return std::nullopt;
+
+            c = _buffer[_head];
+            _head = (_head + 1) % _size;
+            --_current_size;
         }
         _cv_produce.notify_one();
-        return &ch;
+        return c;
     }
 
 private:
     std::vector<char> _buffer;
-    size_t _size;
-    size_t _head_index;
-    size_t _tail_index;
+    const size_t _size;
+    size_t _head;
+    size_t _tail;
+    size_t _current_size;
 
     std::mutex _mtx;
     std::condition_variable _cv_produce;
     std::condition_variable _cv_consume;
-    // end of work
 
-    std::chrono::milliseconds timeout;
+    std::atomic<bool> _stop;
+    const std::chrono::milliseconds timeout{ 500 };
 };
 
 
-void producer(Queue& queue, char c)
+void producer(Queue& q, char c)
 {
-    while (true)
-    {
-        queue.push(c);
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
+    while (q.push(c))
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
 }
 
-void consumer(Queue& queue)
+void consumer(Queue& q)
 {
     while (true)
     {
-        char* ch = queue.pop();
-        if (ch)
-            std::cout << char(std::tolower(*ch));
-        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        auto ch = q.pop();
+        if (!ch.has_value())
+            break;
+        std::cout << char(std::tolower(*ch)) << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
 }
 
 int main()
 {
-    Queue q;
+    Queue q(5);
 
-    std::thread th1(producer, std::ref(q), 'A');
-    std::thread th2(consumer, std::ref(q));
+    std::thread t1(producer, std::ref(q), 'A');
+    std::thread t2(producer, std::ref(q), 'B');
+    std::thread t3(consumer, std::ref(q));
+    std::thread t4(consumer, std::ref(q));
 
-    th1.join();
-    th2.join();
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    q.stop();
 
+    t1.join();
+    t2.join();
+    t3.join();
+    t4.join();
+
+    std::cout << "\nStopped\n";
     return 0;
 }
-
