@@ -1,20 +1,118 @@
-﻿// practice_3.6.cpp : Этот файл содержит функцию "main". Здесь начинается и заканчивается выполнение программы.
-//
+﻿/*
+    Course: Parallel Programming
+    Assignment: 3.6
+    Completed by: Bereza Kirill
+*/
 
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <thread>
+#include <cctype>
+
+
+class Queue
+{
+public:
+    explicit Queue(size_t size = 10)
+        : _buffer(size), _size(size), _head_index(0), _tail_index(0), timeout(10)
+    { }
+
+    ~Queue()
+    {
+        _cv_produce.notify_all();
+        _cv_consume.notify_all();
+    }
+
+    Queue(const Queue&) = delete;
+    Queue& operator=(const Queue&) = delete;
+
+    void push(char c)
+    {
+        {
+            std::unique_lock lock(_mtx);
+            auto status = _cv_produce.wait_for(lock, timeout, [this]() {
+                size_t fact_size = (_tail_index >= _head_index)
+                    ? _tail_index - _head_index
+                    : _size - _head_index + _tail_index;
+                return fact_size < _size;
+            });
+
+            if (status)
+            {
+                _buffer[_tail_index] = c;
+                _tail_index = (_tail_index + 1) % _size;
+            }
+            else
+                return;
+        }
+        _cv_consume.notify_one();
+    }
+
+    char* pop()
+    {
+        char ch;
+        {
+            std::unique_lock lock(_mtx);
+            auto status = _cv_consume.wait_for(lock, timeout, [this]() { return _head_index != _tail_index; });
+            if (status)
+            {
+                ch = _buffer[_head_index];
+                _head_index = (_head_index + 1) % _size;
+            }
+            else
+                return nullptr;
+        }
+        _cv_produce.notify_one();
+        return &ch;
+    }
+
+private:
+    std::vector<char> _buffer;
+    size_t _size;
+    size_t _head_index;
+    size_t _tail_index;
+
+    std::mutex _mtx;
+    std::condition_variable _cv_produce;
+    std::condition_variable _cv_consume;
+    // end of work
+
+    std::chrono::milliseconds timeout;
+};
+
+
+void producer(Queue& queue, char c)
+{
+    while (true)
+    {
+        queue.push(c);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+void consumer(Queue& queue)
+{
+    while (true)
+    {
+        char* ch = queue.pop();
+        if (ch)
+            std::cout << char(std::tolower(*ch));
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    }
+}
 
 int main()
 {
-    std::cout << "Hello World!\n";
+    Queue q;
+
+    std::thread th1(producer, std::ref(q), 'A');
+    std::thread th2(consumer, std::ref(q));
+
+    th1.join();
+    th2.join();
+
+    return 0;
 }
 
-// Запуск программы: CTRL+F5 или меню "Отладка" > "Запуск без отладки"
-// Отладка программы: F5 или меню "Отладка" > "Запустить отладку"
-
-// Советы по началу работы 
-//   1. В окне обозревателя решений можно добавлять файлы и управлять ими.
-//   2. В окне Team Explorer можно подключиться к системе управления версиями.
-//   3. В окне "Выходные данные" можно просматривать выходные данные сборки и другие сообщения.
-//   4. В окне "Список ошибок" можно просматривать ошибки.
-//   5. Последовательно выберите пункты меню "Проект" > "Добавить новый элемент", чтобы создать файлы кода, или "Проект" > "Добавить существующий элемент", чтобы добавить в проект существующие файлы кода.
-//   6. Чтобы снова открыть этот проект позже, выберите пункты меню "Файл" > "Открыть" > "Проект" и выберите SLN-файл.
