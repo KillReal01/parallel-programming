@@ -13,9 +13,10 @@
 #include <vector>
 #include <numeric>
 #include <algorithm>
+#include <latch>
 
 
-void createVector(std::promise<std::vector<int>> p, size_t size)
+void createVector(std::promise<std::vector<int>&> p, size_t size, std::latch& latch)
 {
     std::vector<int> vector;
 	vector.reserve(size);
@@ -27,36 +28,41 @@ void createVector(std::promise<std::vector<int>> p, size_t size)
     for (std::size_t i = 0; i < size; ++i)
         vector.push_back(dist(gen));
 
-    p.set_value(vector);
+    p.set_value(std::ref(vector));
+    latch.wait();
 }
 
-void sumValues(std::promise<int> p, std::shared_future<std::vector<int>> future)
+void sumValues(std::promise<int> p, std::shared_future<std::vector<int>&> future, std::latch& latch)
 {
-    auto vector = future.get();
+    std::vector<int>& vector = future.get();
     int sum = std::accumulate(vector.begin(), vector.end(), 0);
     p.set_value(sum);
+    latch.count_down();
 }
 
-void minValue(std::promise<int> p, std::shared_future<std::vector<int>> future)
+void minValue(std::promise<int> p, std::shared_future<std::vector<int>&> future, std::latch& latch)
 {
-    auto vector = future.get();
+    std::vector<int>& vector = future.get();
     int min = *std::min_element(vector.begin(), vector.end());
     p.set_value(min);
+    latch.count_down();
 }
 
-void maxValue(std::promise<int> p, std::shared_future<std::vector<int>> future)
+void maxValue(std::promise<int> p, std::shared_future<std::vector<int>&> future, std::latch& latch)
 {
-    auto vector = future.get();
+    std::vector<int>& vector = future.get();
     int max = *std::max_element(vector.begin(), vector.end());
     p.set_value(max);
+    latch.count_down();
 }
 
 int main()
 {
-    std::promise<std::vector<int>> pr_create_vector;
+    std::promise<std::vector<int>&> pr_create_vector;
     std::promise<int> pr_sum;
     std::promise<int> pr_min;
     std::promise<int> pr_max;
+    std::latch latch(3);
 
     auto shared_future = pr_create_vector.get_future().share();
     std::future<int> f_sum = pr_sum.get_future();
@@ -66,10 +72,10 @@ int main()
     size_t vector_size = 100'000'000;
 
     std::vector<std::jthread> threads;
-    threads.emplace_back(&createVector, std::move(pr_create_vector), vector_size);
-    threads.emplace_back(&sumValues, std::move(pr_sum), shared_future);
-    threads.emplace_back(&minValue, std::move(pr_min), shared_future);
-    threads.emplace_back(&maxValue, std::move(pr_max), shared_future);
+    threads.emplace_back(&createVector, std::move(pr_create_vector), vector_size, std::ref(latch));
+    threads.emplace_back(&sumValues, std::move(pr_sum), shared_future, std::ref(latch));
+    threads.emplace_back(&minValue, std::move(pr_min), shared_future, std::ref(latch));
+    threads.emplace_back(&maxValue, std::move(pr_max), shared_future, std::ref(latch));
 
     std::cout << "Sum: " << f_sum.get() << std::endl;
     std::cout << "Min: " << f_min.get() << std::endl;
