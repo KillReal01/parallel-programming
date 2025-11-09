@@ -4,8 +4,6 @@
     Completed by: Bereza Kirill
 */
 
-// 
-
 #include <iostream>
 #include <vector>
 #include <thread>
