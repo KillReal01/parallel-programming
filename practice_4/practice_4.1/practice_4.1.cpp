@@ -4,150 +4,80 @@
     Completed by: Bereza Kirill
 */
 
-// Задание корутины 1.
-// Дано: несколько файлов, в которых в форматированном виде хранятся
-// целые значения (разделенные пробелом). Для упрощения задачи в каждом
-// файле задаем одинаковое количество значений.Но лучше учесть, что количество может быть разное!
-// 
-// Требуется посредством корутин вычислять и выводить на экран(или в файл) среднее соответствующих (i - тых значений)
-
-
 #include <iostream>
-#include <fstream>
+#include <atomic>
 #include <vector>
-#include <string>
-#include <random>
-#include <coroutine>
-#include <optional>
-#include <filesystem>
+#include <thread>
 
 
-int generateInteger(int minVal = 1, int maxVal = 1000)
+void increment_value(std::atomic<int>& value, int delta)
 {
-    static std::random_device rd;
-    static std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dist(minVal, maxVal);
-    return dist(gen);
+    value.fetch_add(delta, std::memory_order_relaxed);
 }
 
-void writeToFile(const std::string& file, int numberCount)
+void increment_value_pointer(std::atomic<int>* value, int delta)
 {
-    std::ofstream outFile(file);
-    if (!outFile.is_open())
-    {
-        std::cerr << "Can't open file for write: " << file << std::endl;
-        return;
-    }
-
-    for (size_t i = 0; i < numberCount; ++i)
-    {
-        outFile << generateInteger();
-        if (i + 1 < numberCount)
-            outFile << " ";
-    }
-    outFile << std::endl;
-    outFile.close();
+    value->fetch_add(delta, std::memory_order_relaxed);
 }
 
-
-std::vector<std::string> generateFiles(int numberFiles)
+void print(const std::vector<std::atomic<int>>& vec)
 {
-    const std::string dir = "numbers";
-    std::filesystem::create_directories(dir);
-    std::vector<std::string> files;
-    for (int i = 0; i < numberFiles; ++i)
-    {
-        std::string file = dir + "/file_" + std::to_string(i + 1) + ".txt";
-
-        int numberCount = generateInteger();
-        writeToFile(file, numberCount);
-        files.push_back(file);
-
-        std::cout << "Created file: " << file << " with " << numberCount << " numbers" << std::endl;
-    }
-    return files;
+    for (const auto& value : vec)
+        std::cout << value.load() << " ";
+    std::cout << std::endl;
 }
 
-template <typename T>
-struct Generator
+void task_1()
 {
-    struct promise_type
-    {
-        std::optional<T> current_value;
+    const int vector_size = 10;
+    std::vector<std::atomic<int>> vec(vector_size);
+    for (auto i = 0; i < vec.size(); ++i)
+        vec[i].store(i);
 
-        Generator get_return_object() { return Generator{ std::coroutine_handle<promise_type>::from_promise(*this) }; }
-        std::suspend_always initial_suspend() noexcept { return {}; }
-        std::suspend_always final_suspend() noexcept { return {}; }
-        std::suspend_always yield_value(T value) noexcept {
-            current_value = value;
-            return {};
-        }
-        void return_void() noexcept {}
-        void unhandled_exception() { std::terminate(); }
-    };
+    std::cout << "[Task 1] Vector before: ";
+    print(vec);
 
-    using handle_type = std::coroutine_handle<promise_type>;
-    handle_type handle;
+    std::vector<std::thread> workers;
+    workers.reserve(vec.size());
 
-    explicit Generator(handle_type h) : handle(h) {}
-    Generator(const Generator&) = delete;
-    Generator(Generator&& other) noexcept : handle(other.handle) { other.handle = {}; }
-    ~Generator() { if (handle) handle.destroy(); }
+    for (auto& value : vec)
+        workers.emplace_back(increment_value, std::ref(value), 1);
 
-    std::optional<T> next()
-    {
-        if (!handle || handle.done())
-            return std::nullopt;
-        handle.resume();
-        if (handle.done())
-            return std::nullopt;
-        return handle.promise().current_value;
-    }
-};
+    for (auto& th : workers)
+        th.join();
 
-Generator<int> readFromFile(const std::string& file)
+    std::cout << "[Task 1] Vector after: ";
+    print(vec);
+}
+
+void task_2()
 {
-    std::ifstream in(file);
-    int value;
-    while (in >> value)
-        co_yield value;
+    const int vector_size = 10;
+    std::vector<std::atomic<int>> vec(vector_size);
+    for (auto i = 0; i < vec.size(); ++i)
+        vec[i].store(i);
+
+    std::cout << "[Task 2] Vector before: ";
+    print(vec);
+
+    std::vector<std::thread> workers;
+    workers.reserve(vec.size());
+
+    for (auto& value : vec)
+        workers.emplace_back(increment_value_pointer, &value, 1);
+
+    for (auto& th : workers)
+        th.join();
+
+    std::cout << "[Task 2] Vector after: ";
+    print(vec);
 }
 
 int main()
 {
-    const int numberFiles = 1000;
-    auto files = generateFiles(numberFiles);
-
-    std::vector<Generator<int>> generators;
-    generators.reserve(numberFiles);
-    for (const auto& file : files)
-        generators.push_back(readFromFile(file));
-
-    std::ofstream result("result.txt");
-    if (!result.is_open())
-    {
-        std::cerr << "Cannot open result file\n";
-        return 1;
-    }
-
-    int index = 0;
-    for (;;)
-    {
-        float sum = 0;
-        int count = 0;
-        for (auto& gen : generators)
-        {
-            if (auto value = gen.next())
-            {
-                sum += *value;
-                ++count;
-            }
-        }
-        if (count == 0)
-            break;
-        float avg = sum / count;
-        result << "Index: " << index++ << "\tavg: " << avg << '\n';
-    }
-
+    // 1.a
+    task_1();
+    // 1.b
+    task_2();
     return 0;
 }
