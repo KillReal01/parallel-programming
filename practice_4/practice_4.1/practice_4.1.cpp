@@ -30,12 +30,12 @@ int generateInteger(int minVal = 1, int maxVal = 1000)
     return dist(gen);
 }
 
-void writeToFile(const std::string& filename, int numberCount)
+void writeToFile(const std::string& file, int numberCount)
 {
-    std::ofstream outFile(filename);
+    std::ofstream outFile(file);
     if (!outFile.is_open())
     {
-        std::cerr << "Can't open file for write: " << filename << std::endl;
+        std::cerr << "Can't open file for write: " << file << std::endl;
         return;
     }
 
@@ -54,18 +54,18 @@ std::vector<std::string> generateFiles(int numberFiles)
 {
     const std::string dir = "numbers";
     std::filesystem::create_directories(dir);
-    std::vector<std::string> filenames;
+    std::vector<std::string> files;
     for (int i = 0; i < numberFiles; ++i)
     {
-        std::string filename = dir + "/file_" + std::to_string(i + 1) + ".txt";
+        std::string file = dir + "/file_" + std::to_string(i + 1) + ".txt";
 
         int numberCount = generateInteger();
-        writeToFile(filename, numberCount);
-        filenames.push_back(filename);
+        writeToFile(file, numberCount);
+        files.push_back(file);
 
-        std::cout << "Created file: " << filename << " with " << numberCount << " numbers" << std::endl;
+        std::cout << "Created file: " << file << " with " << numberCount << " numbers" << std::endl;
     }
-    return filenames;
+    return files;
 }
 
 template <typename T>
@@ -105,9 +105,9 @@ struct Generator
     }
 };
 
-Generator<int> readFromFile(const std::string& filename)
+Generator<int> readFromFile(const std::string& file)
 {
-    std::ifstream in(filename);
+    std::ifstream in(file);
     int value;
     while (in >> value)
         co_yield value;
@@ -116,12 +116,12 @@ Generator<int> readFromFile(const std::string& filename)
 int main()
 {
     const int numberFiles = 1000;
-    auto filenames = generateFiles(numberFiles);
+    auto files = generateFiles(numberFiles);
 
     std::vector<Generator<int>> generators;
     generators.reserve(numberFiles);
-    for (const auto& filename : filenames)
-        generators.push_back(readFromFile(filename));
+    for (const auto& file : files)
+        generators.push_back(readFromFile(file));
 
     std::ofstream result("result.txt");
     if (!result.is_open())
@@ -139,14 +139,14 @@ int main()
         {
             if (auto value = gen.next())
             {
-                sum += value.value();
+                sum += *value;
                 ++count;
             }
         }
         if (count == 0)
             break;
         float avg = sum / count;
-        result << "Index: " << index++ << "\tavg : " << avg << '\n';
+        result << "Index: " << index++ << "\tavg: " << avg << '\n';
     }
 
     return 0;
