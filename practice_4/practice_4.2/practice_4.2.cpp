@@ -24,6 +24,9 @@
 #include <coroutine>
 #include <optional>
 #include <filesystem>
+#include <thread>
+#include <barrier>
+#include <array>
 
 
 int generateInteger(int minVal = 1, int maxVal = 1000)
@@ -34,12 +37,12 @@ int generateInteger(int minVal = 1, int maxVal = 1000)
     return dist(gen);
 }
 
-void writeToFile(const std::string& filename, int numberCount)
+void writeToFile(const std::string& file, int numberCount)
 {
-    std::ofstream outFile(filename);
+    std::ofstream outFile(file);
     if (!outFile.is_open())
     {
-        std::cerr << "Can't open file for write: " << filename << std::endl;
+        std::cerr << "Can't open file for write: " << file << std::endl;
         return;
     }
 
@@ -53,23 +56,22 @@ void writeToFile(const std::string& filename, int numberCount)
     outFile.close();
 }
 
-
 std::vector<std::string> generateFiles(int numberFiles)
 {
     const std::string dir = "numbers";
     std::filesystem::create_directories(dir);
-    std::vector<std::string> filenames;
+    std::vector<std::string> files;
     for (int i = 0; i < numberFiles; ++i)
     {
-        std::string filename = dir + "/file_" + std::to_string(i + 1) + ".txt";
+        std::string file = dir + "/file_" + std::to_string(i + 1) + ".txt";
 
         int numberCount = generateInteger();
-        writeToFile(filename, numberCount);
-        filenames.push_back(filename);
+        writeToFile(file, numberCount);
+        files.push_back(file);
 
-        std::cout << "Created file: " << filename << " with " << numberCount << " numbers" << std::endl;
+        std::cout << "Created file: " << file << " with " << numberCount << " numbers" << std::endl;
     }
-    return filenames;
+    return files;
 }
 
 template <typename T>
@@ -109,23 +111,31 @@ struct Generator
     }
 };
 
-Generator<int> readFromFile(const std::string& filename)
+Generator<int> readFromFile(const std::string& file)
 {
-    std::ifstream in(filename);
+    std::ifstream in(file);
     int value;
     while (in >> value)
         co_yield value;
 }
 
+void producerTask(const std::string& file, std::optional<int>& current, std::barrier<>& barrier)
+{
+    auto generator = readFromFile(file);
+    while (true)
+    {
+        auto val = generator.next();
+        current = val;
+        barrier.arrive_and_wait();
+        if (!val)
+            break;
+        barrier.arrive_and_wait();
+    }
+    barrier.arrive_and_drop();
+}
+
 int main()
 {
-    const int numberFiles = 1000;
-    auto filenames = generateFiles(numberFiles);
-
-    std::vector<Generator<int>> generators;
-    for (const auto& filename : filenames)
-        generators.push_back(readFromFile(filename));
-
     std::ofstream result("result.txt");
     if (!result.is_open())
     {
@@ -133,24 +143,44 @@ int main()
         return 1;
     }
 
+    const int numberFiles = 1000;
+    auto files = generateFiles(numberFiles);
+
+    std::array<std::optional<int>, numberFiles> shared;
+    std::barrier barrier(numberFiles + 1);
+
+    std::vector<std::thread> producers;
+    producers.reserve(numberFiles);
+
+    for (int i = 0; i < numberFiles; ++i)
+        producers.emplace_back(producerTask, std::cref(files[i]), std::ref(shared[i]), std::ref(barrier));
+
+    bool running = true;
     int index = 0;
-    for (;;)
+    while (running)
     {
-        float sum = 0;
-        int count = 0;
-        for (auto& gen : generators)
+        barrier.arrive_and_wait();
+        int sum = 0, count = 0;
+        running = false;
+
+        for (auto& value : shared)
         {
-            if (auto value = gen.next())
+            if (value)
             {
-                sum += value.value();
+                sum += *value;
                 ++count;
+                running = true;
             }
         }
-        if (count == 0)
-            break;
-        float avg = sum / count;
-        result << "Index: " << index++ << "\tavg : " << avg << '\n';
+
+        if (count)
+             result << "Index: " << index++ << "\tavg: " << (sum / (double)count) << '\n';
+
+        barrier.arrive_and_wait();
     }
+
+    for (auto& t : producers)
+        t.join();
 
     return 0;
 }
