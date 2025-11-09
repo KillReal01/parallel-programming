@@ -119,6 +119,7 @@ int main()
     auto filenames = generateFiles(numberFiles);
 
     std::vector<Generator<int>> generators;
+    generators.reserve(numberFiles);
     for (const auto& filename : filenames)
         generators.push_back(readFromFile(filename));
 
