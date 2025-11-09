@@ -144,7 +144,7 @@ template<typename T>
 void worker(size_t n)
 {
     for (size_t i = 0; i < n; ++i)
-        T obj(5);
+        T obj(i);
 }
 
 template<typename A>
