@@ -3,7 +3,6 @@
     Assignment: 4.5
     Completed by: Bereza Kirill
 */
-       
 
 #include <iostream>
 #include <atomic>
@@ -11,6 +10,7 @@
 #include <shared_mutex>
 #include <thread>
 #include <chrono>
+#include <vector>
 
 
 class spinlock
@@ -19,25 +19,12 @@ public:
     spinlock() = default;
     ~spinlock() = default;
 
-    void lock() noexcept
-    {
-        while (_flag.test_and_set(std::memory_order_acquire))
-            _flag.wait(true, std::memory_order_relaxed);
-    }
-
-    void unlock() noexcept
-    {
-        _flag.clear(std::memory_order_release);
-        _flag.notify_one();
-    }
-
-    bool try_lock() noexcept
-    {
-        return !_flag.test_and_set(std::memory_order_acquire);
-    }
+    void lock() noexcept { while (_flag.test_and_set(std::memory_order_acquire)); }
+    void unlock() noexcept { _flag.clear(std::memory_order_release); }
+    bool try_lock() noexcept { return !_flag.test_and_set(std::memory_order_acquire); }
 
 private:
-    std::atomic_flag _flag;
+    std::atomic_flag _flag{};
 };
 
 
@@ -158,7 +145,8 @@ void test_class(const std::string& name, uint32_t threads_count, size_t objs_per
     for (size_t i = 0; i < threads_count; ++i)
         threads.emplace_back(worker<A>, objs_per_thread);
 
-    for (auto& t : threads) t.join();
+    for (auto& t : threads)
+        t.join();
 
     auto end = std::chrono::high_resolution_clock::now();
 
@@ -177,3 +165,15 @@ int main()
 
     return 0;
 }
+
+// Testing T_Mutex...
+// Final count: 0
+// Time taken: 00h:00m:07s.685ms.848mks.600ns ms
+
+// Testing T_Spin...
+// Final count: 0
+// Time taken: 00h:00m:13s.838ms.881mks.425ns ms
+
+// Testing T_Atomic...
+// Final count: 0
+// Time taken: 00h:00m:00s.370ms.091mks.098ns ms
