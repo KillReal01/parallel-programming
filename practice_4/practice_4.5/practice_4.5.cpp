@@ -32,8 +32,9 @@ template<typename T>
 class T_Mutex
 {
 public:
-    explicit T_Mutex(T value)
-        : m_value(std::move(value))
+    template<typename U>
+    explicit T_Mutex(U&& value)
+        : m_value(std::forward<U>(value))
     {
         std::lock_guard<std::shared_mutex> lock(m_mtx);
         ++s_counter;
@@ -62,8 +63,9 @@ template<typename T>
 class T_Spin
 {
 public:
-    explicit T_Spin(T value)
-        : m_value(std::move(value))
+    template<typename U>
+    explicit T_Spin(U&& value)
+        : m_value(std::forward<U>(value))
     {
         std::lock_guard<spinlock> lock(m_spin);
         ++s_counter;
@@ -92,8 +94,9 @@ template<typename T>
 class T_Atomic
 {
 public:
-    explicit T_Atomic(T value)
-        : m_value(value)
+    template<typename U>
+    explicit T_Atomic(U&& value)
+        : m_value(std::forward<U>(value))
     { s_counter.fetch_add(1, std::memory_order_relaxed); }
 
     ~T_Atomic() { s_counter.fetch_sub(1, std::memory_order_relaxed); }
