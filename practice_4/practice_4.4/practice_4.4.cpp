@@ -10,6 +10,7 @@
 #include <vector>
 #include <thread>
 #include <chrono>
+#include <mutex>
 
 
 class spinlock
@@ -18,35 +19,16 @@ public:
     spinlock() = default;
     ~spinlock() = default;
 
-    void lock() noexcept
-    {
-        while (_flag.test_and_set(std::memory_order_acquire))
-            _flag.wait(true, std::memory_order_relaxed);
-    }
+    void lock() noexcept { while (_flag.test_and_set(std::memory_order_acquire)); }
+    void lock_shared() noexcept { this->lock(); } // заглушка для std::shared_lock
 
-    void lock_shared() noexcept
-    {
-        this->lock(); // заглушка
-    }
+    void unlock() noexcept { _flag.clear(std::memory_order_release); }
+    void unlock_shared() noexcept { this->unlock(); } // заглушка для std::shared_lock
 
-    void unlock() noexcept
-    {
-        _flag.clear(std::memory_order_release);
-        _flag.notify_one();
-    }
-
-    void unlock_shared() noexcept
-    {
-        this->unlock(); // заглушка
-    }
-
-    bool try_lock() noexcept
-    {
-        return !_flag.test_and_set(std::memory_order_acquire);
-    }
+    bool try_lock() noexcept { return !_flag.test_and_set(std::memory_order_acquire); }
 
 private:
-    std::atomic_flag _flag;
+    std::atomic_flag _flag{};
 };
 
 template<typename T, typename Mutex>
@@ -210,10 +192,8 @@ int main()
     return 0;
 }
 
-// Наблюдаем солидный выигрыш!
-//
-//Testing std::shared_mutex...
-//[shared_mutex] Time taken : 00h : 00m : 24s.341ms.166mks.400ns
-//
-//Testing spinlock...
-//[spinlock] Time taken :     00h : 00m : 16s.607ms.609mks.000ns
+// Testing std::shared_mutex...
+// [shared_mutex] Time taken : 00h:00m:07s.763ms.467mks.031ns
+
+// Testing spinlock...
+// [spinlock] Time taken : 00h:00m:15s.004ms.217mks.391ns
